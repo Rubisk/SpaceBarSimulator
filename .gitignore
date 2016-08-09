@@ -1,4 +1,4 @@
-bin
+*\bin
 *.iml
 *.idea
 .gradle
@@ -8,3 +8,4 @@ bin
 .DS_Store
 \build
 \captures
+*.jar

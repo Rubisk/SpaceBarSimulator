@@ -1,4 +1,4 @@
-package wouter.rienks.spacebarsimulatorpc;
+package com.spacebarsim;
 
 import java.io.IOException;
 import java.net.ServerSocket;

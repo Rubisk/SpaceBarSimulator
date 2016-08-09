@@ -1,4 +1,4 @@
-package wouter.rienks.spacebarsimulatorpc;
+package com.spacebarsim;
 
 import java.awt.AWTException;
 import java.awt.MenuItem;
@@ -19,7 +19,7 @@ public class Main {
             return;
         }
         final PopupMenu popup = new PopupMenu();
-        URL url = Main.class.getResource("icon.png");
+        URL url = Main.class.getResource("/assets/icon.png");
         final TrayIcon trayIcon =
                 new TrayIcon(Toolkit.getDefaultToolkit().getImage(url));
         final SystemTray tray = SystemTray.getSystemTray();

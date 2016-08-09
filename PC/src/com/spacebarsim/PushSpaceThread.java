@@ -1,4 +1,4 @@
-package wouter.rienks.spacebarsimulatorpc;
+package com.spacebarsim;
 
 import java.awt.AWTException;
 import java.awt.Robot;
