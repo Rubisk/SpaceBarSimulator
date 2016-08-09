@@ -2,13 +2,15 @@ package rienks.wouter.spacebarsimulator;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import android.app.Activity;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -30,7 +32,7 @@ public class SSClientActivity extends Activity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_ssclient);
-		new LookupSubnetTask().execute(this);
+		findNetworkDevices();
 	}
 
 	public void afterLookup(String subnet) {
@@ -42,11 +44,9 @@ public class SSClientActivity extends Activity {
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-			new LookupSubnetTask().execute(this);
 			return;
 		}
-		startCheckingHosts(subnet);
-        setContentView(R.layout.main_layout);
+		setContentView(R.layout.main_layout);
         ((TextView) findViewById(R.id.ip_view)).setText(subnet + ".");
         Button button = (Button) findViewById(R.id.connect_button);
         button.setOnClickListener(new OnClickListener() {
@@ -93,12 +93,6 @@ public class SSClientActivity extends Activity {
 		button.setText("Connect!");
 	}
 
-    public void startCheckingHosts(String subnet){
-        for (int i = 1; i < 128; i++){
-            new TryConnectTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, this, subnet, 2*i);
-        }
-    }
-
     private void sendSpace() {
 		DataOutputStream dOut;
 		try {
@@ -131,5 +125,29 @@ public class SSClientActivity extends Activity {
 		socket = s;
 		Button button = (Button) findViewById(R.id.connect_button);
 		button.setText("SPACE");
+	}
+
+	public Map<String, InetAddress> findNetworkDevices() {
+		PingThread[] threads = new PingThread[254];
+		int[] ip = {192, 168, 178, 0};
+		for (int i = 1; i < 255; i++) {
+			ip[3] = i;
+			threads[i - 1] = new PingThread(ip);
+			threads[i - 1].start();
+		}
+
+		Map<String, InetAddress> networkDevices = new HashMap<>();
+		for (int i = 0; i < 254; i++) {
+			try {
+				threads[i].join();
+				if (threads[i].exists()) {
+					Log.i(TAG, "Found device: " + threads[i].getAddressName());
+					networkDevices.put(threads[i].getAddressName(), threads[i].getAddress());
+				}
+			} catch (InterruptedException e) {
+				Log.d(TAG, e.toString());
+			}
+		}
+		return networkDevices;
 	}
 }
