@@ -1,6 +1,7 @@
 *\bin
 *.iml
 *.idea
+*.apk
 .gradle
 \local.properties
 \.idea\workspace.xml
