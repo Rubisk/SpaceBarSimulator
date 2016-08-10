@@ -17,6 +17,7 @@ public class PushSpaceThread extends Thread{
         try {
 			robot = new Robot();
 		} catch (AWTException e) {
+			e.printStackTrace()
 		}
     }
 
