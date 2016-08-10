@@ -2,98 +2,59 @@ package rienks.wouter.spacebarsimulator;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import android.app.Activity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.view.View.OnClickListener;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.Spinner;
-import android.widget.TextView;
 import android.widget.Toast;
 
 public class SSClientActivity extends Activity {
 	private final static String TAG = "SSClientActivity";
-	private Socket socket;
-	private String subnet;
-	boolean connecting = false;
-    List<String> availableIPs = new ArrayList<>();
+	private String currentSocket;
+	private Map<String, Socket> devices;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_ssclient);
-		findNetworkDevices();
+		setContentView(R.layout.find_devices);
+		findDevices();
 	}
 
-	public void afterLookup(String subnet) {
-		this.subnet = subnet;
-		if (subnet == "") {
-			Toast.makeText(this, "Can't find subnet, trying again.", Toast.LENGTH_SHORT).show();
-			try {
-				Thread.sleep(10000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-			return;
-		}
-		setContentView(R.layout.main_layout);
-        ((TextView) findViewById(R.id.ip_view)).setText(subnet + ".");
-        Button button = (Button) findViewById(R.id.connect_button);
-        button.setOnClickListener(new OnClickListener() {
-
-            @Override
-            public void onClick(View v) {
-                connect();
+    private void closeDevices() {
+        for (Socket s : devices.values()) {
+            try {
+                s.close();
+            } catch (IOException e) {
+                Log.e(TAG, e.toString());
             }
-
-        });
-
+        }
     }
 
-    public void networkDeviceFound(String ip) {
-        availableIPs.add(ip);
-        Collections.sort(availableIPs);
-        ArrayAdapter<String> dataAdapter = new ArrayAdapter<String>(this,
-                android.R.layout.simple_spinner_item, availableIPs);
-        dataAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        ((Spinner) findViewById(R.id.spinner)).setAdapter(dataAdapter);
+    private void reloadDevices() {
+        closeDevices();
+        findDevices();
     }
-
-	private void connect() {
-		if(connecting) return;
-		Spinner spinner = (Spinner) findViewById(R.id.spinner);
-		if(socket != null){
-			sendSpace();
-			return;
-		}
-		Button button = (Button) findViewById(R.id.connect_button);
-		button.setText("Connecting...");
-
-		new ConnectTask().execute(this, subnet + "." + Integer.parseInt(spinner.getSelectedItem().toString())).toString();
-	}
 
 	private void loseConnection() {
 		try {
-			socket.close();
+			devices.get(currentSocket).close();
 		} catch (IOException e) {
 			Log.w(TAG, "Failed to close socket after losing connection");
 		}
-		socket = null;
-		Button button = (Button) findViewById(R.id.connect_button);
-		button.setText("Connect!");
+		devices.remove(currentSocket);
+        reloadDevices();
 	}
 
-    private void sendSpace() {
+    public void sendSpace(View v) {
+		Socket socket = devices.get(currentSocket);
 		DataOutputStream dOut;
 		try {
 			dOut = new DataOutputStream(socket.getOutputStream());
@@ -112,42 +73,39 @@ public class SSClientActivity extends Activity {
 		}
 	}
 
-	public void setSocket(Socket s) {
-		connecting = false;
-		if(s == null){
-			Toast.makeText(this, "Failed to connect.", Toast.LENGTH_SHORT).show();
-
-			Button button = (Button) findViewById(R.id.connect_button);
-			button.setText("Connect!");
-			return;
-		}
-		Toast.makeText(this, "Connected!", Toast.LENGTH_SHORT).show();
-		socket = s;
-		Button button = (Button) findViewById(R.id.connect_button);
-		button.setText("SPACE");
+	private void findDevices() {
+        (new FindDevicesTask(this)).execute();
 	}
 
-	public Map<String, InetAddress> findNetworkDevices() {
-		PingThread[] threads = new PingThread[254];
-		int[] ip = {192, 168, 178, 0};
-		for (int i = 1; i < 255; i++) {
-			ip[3] = i;
-			threads[i - 1] = new PingThread(ip);
-			threads[i - 1].start();
-		}
+    public void foundDevices(Map<String, Socket> devices) {
+        this.devices = devices;
+        if (devices.size() == 0) {
+            Toast.makeText(this, "No devices found, retrying.", Toast.LENGTH_SHORT).show();
+            findDevices();
+        }
+        setContentView(R.layout.select_device);
+        Spinner spinner = (Spinner) findViewById(R.id.spinner);
+        ArrayList<String> names = new ArrayList<>();
+        names.addAll(devices.keySet());
+        currentSocket = names.get(0);
+        ArrayAdapter<String> spinnerArrayAdapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item,
+                names);
+        spinner.setAdapter(spinnerArrayAdapter);
+        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                currentSocket = adapterView.getItemAtPosition(i).toString();
+            }
 
-		Map<String, InetAddress> networkDevices = new HashMap<>();
-		for (int i = 0; i < 254; i++) {
-			try {
-				threads[i].join();
-				if (threads[i].exists()) {
-					Log.i(TAG, "Found device: " + threads[i].getAddressName());
-					networkDevices.put(threads[i].getAddressName(), threads[i].getAddress());
-				}
-			} catch (InterruptedException e) {
-				Log.d(TAG, e.toString());
-			}
-		}
-		return networkDevices;
-	}
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+                currentSocket = null;
+            }
+        });
+    }
+
+    public void reloadDevices(View view) {
+        reloadDevices();
+    }
 }

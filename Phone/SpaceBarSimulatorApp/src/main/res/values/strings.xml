@@ -4,5 +4,7 @@
     <string name="app_name">Spacebar Simulator 2</string>
     <string name="looking_up_hosts">Searching for devices... Please wait.</string>
     <string name="action_settings">Settings</string>
+    <string name="space">Space!</string>
+    <string name="reload">Reload</string>
 
 </resources>

@@ -8,31 +8,29 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="rienks.wouter.spacebarsimulator.SSClientActivity" >
 
-	<Button
-        android:id="@+id/connect_button"
+    <Button
+        android:id="@+id/space_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerHorizontal="true"
         android:layout_centerVertical="true"
-        android:text="Connect!" />
+        android:text="@string/space"
+        android:onClick="sendSpace"/>
 
-    <TextView
-        android:id="@+id/ip_view"
+    <Button
+        android:id="@+id/reload_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/connect_button"
-        android:layout_alignRight="@+id/connect_button"
-        android:layout_marginBottom="121dp"
-        android:text="192.168.178."
-        android:textSize="30sp" />
+        android:text="@string/reload"
+        android:onClick="reloadDevices"
+        android:layout_below="@+id/space_button"
+        android:layout_centerHorizontal="true" />
 
     <Spinner
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
         android:id="@+id/spinner"
-        android:layout_alignBottom="@+id/ip_view"
-        android:layout_toRightOf="@+id/ip_view"
-        android:layout_alignTop="@+id/ip_view"
         android:textSize="30sp" />
 
 </RelativeLayout>
