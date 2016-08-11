@@ -2,9 +2,9 @@ package rienks.wouter.spacebarsimulator;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 
 import android.app.Activity;
@@ -18,7 +18,7 @@ import android.widget.Toast;
 
 public class SSClientActivity extends Activity {
 	private final static String TAG = "SSClientActivity";
-	private String currentSocket;
+	private String currentSocketName;
 	private Map<String, Socket> devices;
 
 	@Override
@@ -44,17 +44,30 @@ public class SSClientActivity extends Activity {
     }
 
 	private void loseConnection() {
+        Toast.makeText(this, "Connection lost, reconnecting...", Toast.LENGTH_SHORT).show();
+        InetAddress address = devices.get(currentSocketName).getInetAddress();
 		try {
-			devices.get(currentSocket).close();
+			devices.get(currentSocketName).close();
 		} catch (IOException e) {
 			Log.w(TAG, "Failed to close socket after losing connection");
 		}
-		devices.remove(currentSocket);
-        reloadDevices();
+        (new ReconnectTask(this)).execute(address.toString(), currentSocketName);
 	}
 
+    public void reconnect(Socket s, String name) {
+        if (s == null) {
+            Toast.makeText(this, "Reconnecting failed.", Toast.LENGTH_SHORT).show();
+            devices.remove(currentSocketName);
+            foundDevices(devices);
+        }
+        else {
+            Toast.makeText(this, "Reconnected.", Toast.LENGTH_SHORT).show();
+            devices.put(name, s);
+        }
+    }
+
     public void sendSpace(View v) {
-		Socket socket = devices.get(currentSocket);
+		Socket socket = devices.get(currentSocketName);
 		DataOutputStream dOut;
 		try {
 			dOut = new DataOutputStream(socket.getOutputStream());
@@ -79,30 +92,31 @@ public class SSClientActivity extends Activity {
 
     public void foundDevices(Map<String, Socket> devices) {
         this.devices = devices;
-        if (devices.size() == 0) {
-            Toast.makeText(this, "No devices found, retrying.", Toast.LENGTH_SHORT).show();
-            findDevices();
-        }
         setContentView(R.layout.select_device);
         Spinner spinner = (Spinner) findViewById(R.id.spinner);
         ArrayList<String> names = new ArrayList<>();
         names.addAll(devices.keySet());
-        currentSocket = names.get(0);
-        ArrayAdapter<String> spinnerArrayAdapter = new ArrayAdapter<>(this,
-                android.R.layout.simple_spinner_item,
-                names);
-        spinner.setAdapter(spinnerArrayAdapter);
-        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
-                currentSocket = adapterView.getItemAtPosition(i).toString();
-            }
+        if (names.size() == 0) {
+            Toast.makeText(this, "No devices found, retrying...", Toast.LENGTH_SHORT).show();
+            findDevices();
+        } else {
+            currentSocketName = names.get(0);
+            ArrayAdapter<String> spinnerArrayAdapter = new ArrayAdapter<>(this,
+                    android.R.layout.simple_spinner_item,
+                    names);
+            spinner.setAdapter(spinnerArrayAdapter);
+            spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                    currentSocketName = adapterView.getItemAtPosition(i).toString();
+                }
 
-            @Override
-            public void onNothingSelected(AdapterView<?> adapterView) {
-                currentSocket = null;
-            }
-        });
+                @Override
+                public void onNothingSelected(AdapterView<?> adapterView) {
+                    currentSocketName = null;
+                }
+            });
+        }
     }
 
     public void reloadDevices(View view) {
