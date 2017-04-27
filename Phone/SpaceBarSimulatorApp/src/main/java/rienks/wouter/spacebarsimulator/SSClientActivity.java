@@ -1,6 +1,5 @@
 package rienks.wouter.spacebarsimulator;
 
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -43,7 +42,7 @@ public class SSClientActivity extends Activity {
         findDevices();
     }
 
-	private void loseConnection() {
+	public void loseConnection() {
         Toast.makeText(this, "Connection lost, reconnecting...", Toast.LENGTH_SHORT).show();
         InetAddress address = devices.get(currentSocketName).getInetAddress();
 		try {
@@ -67,23 +66,8 @@ public class SSClientActivity extends Activity {
     }
 
     public void sendSpace(View v) {
-		Socket socket = devices.get(currentSocketName);
-		DataOutputStream dOut;
-		try {
-			dOut = new DataOutputStream(socket.getOutputStream());
-		} catch (IOException e) {
-			loseConnection();
-			Toast.makeText(this, "Lost the connection.", Toast.LENGTH_SHORT).show();
-			Log.e(TAG, "Unable to send message", e);
-			return;
-		}
-		try {
-			dOut.writeUTF("Please press the spacebar, will you?");
-		} catch (IOException e) {
-			loseConnection();
-			Toast.makeText(this, "Lost the connection.", Toast.LENGTH_SHORT).show();
-			Log.e(TAG, "Unable to send message", e);
-		}
+        Socket socket = devices.get(currentSocketName);
+        new SendSpaceTask(this).execute(socket);
 	}
 
 	private void findDevices() {
